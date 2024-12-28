@@ -87,11 +87,24 @@ if (isset($_POST['edit_user'])) {
     $user_id = $_POST['user_id']; 
     $username = $_POST['username'];
     $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $phone = $_POST['phone'];
     $role = $_POST['role'];
     $uploadDir = 'uploads/';
-
+ // to prevent hashing password twice 
+    $stmt = $conn->prepare("SELECT PASSWORD FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->bind_result($currentPassword);
+    $stmt->fetch();
+    $stmt->close();
+    $password = $_POST['password'];
+    if (!empty($password)&&!password_verify($password, $currentPassword)) {
+        
+        $password = password_hash($password, PASSWORD_DEFAULT);
+      } else {
+        
+       $password = $currentPassword;
+    }
     //  photo upload
     if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] == 0) {
         $profilePhotoName = $_FILES['profile_photo']['name'];
@@ -107,8 +120,8 @@ if (isset($_POST['edit_user'])) {
         $additionalFilePath = $uploadDir . uniqid() . '_' . basename($additionalFileName);
         move_uploaded_file($additionalFileTmpName, $additionalFilePath);
     }
-    $checkemail_name = $conn->prepare("SELECT name, email FROM users WHERE name = ? OR email = ?");
-    $checkemail_name->bind_param("ss", $username, $email);
+    $checkemail_name = $conn->prepare("SELECT name, email FROM users WHERE (name = ? OR email = ?) AND user_id!=$user_id");
+    $checkemail_name->bind_param("ss", $username, $email,);
     $checkemail_name->execute();
     $checkemail_name->bind_result($Nameexist, $Emailexist);
     
@@ -116,7 +129,7 @@ if (isset($_POST['edit_user'])) {
     $EmailTaken = false;
 
     while ($checkemail_name->fetch()) {
-        if ($Nameexist === $username) {
+        if ($Nameexist === $username  ) {
             $UsernameTaken = true;
         }
         if ($Emailexist === $email) {
