@@ -98,7 +98,7 @@ if (isset($_POST['edit_user'])) {
     $stmt->fetch();
     $stmt->close();
     $password = $_POST['password'];
-    if (!empty($password)&&!password_verify($password, $currentPassword)) {
+    if (!empty($password)&&$password !== $currentPassword) {
         
         $password = password_hash($password, PASSWORD_DEFAULT);
       } else {
